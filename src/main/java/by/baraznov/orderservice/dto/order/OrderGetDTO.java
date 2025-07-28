@@ -1,5 +1,6 @@
 package by.baraznov.orderservice.dto.order;
 
+import by.baraznov.orderservice.dto.UserGetDTO;
 import by.baraznov.orderservice.dto.orderitem.OrderItemGetDTO;
 import by.baraznov.orderservice.model.OrderStatus;
 
@@ -10,6 +11,7 @@ public record OrderGetDTO(
         Integer id,
         OrderStatus status,
         LocalDateTime creationDate,
-        List<OrderItemGetDTO> orderItems
+        List<OrderItemGetDTO> orderItems,
+        UserGetDTO user
 ) {
 }
