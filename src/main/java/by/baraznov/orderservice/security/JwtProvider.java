@@ -1,4 +1,4 @@
-package by.baraznov.orderservice.securities;
+package by.baraznov.orderservice.security;
 
 
 import by.baraznov.orderservice.util.jwt.JwtExpiredException;

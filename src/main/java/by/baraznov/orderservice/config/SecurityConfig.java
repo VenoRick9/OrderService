@@ -1,7 +1,7 @@
 package by.baraznov.orderservice.config;
 
 
-import by.baraznov.orderservice.securities.JwtFilter;
+import by.baraznov.orderservice.security.JwtFilter;
 import lombok.AllArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
