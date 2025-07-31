@@ -11,4 +11,6 @@ import org.mapstruct.Mapping;
 public interface OrderCreateDTOMapper extends BaseMapper<Order, OrderCreateDTO> {
     @Mapping(target = "orderItems", source = "orderItems")
     OrderCreateDTO toDto(Order order);
+    @Mapping(target = "orderItems", ignore = true)
+    Order toEntity(OrderCreateDTO orderCreateDTO);
 }

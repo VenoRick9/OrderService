@@ -5,6 +5,7 @@ import by.baraznov.orderservice.dto.item.ItemCreateDTO;
 import by.baraznov.orderservice.dto.item.ItemGetDTO;
 import by.baraznov.orderservice.dto.item.ItemUpdateDTO;
 import by.baraznov.orderservice.service.ItemService;
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -17,7 +18,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -34,16 +34,16 @@ public class ItemController {
     public ResponseEntity<ItemGetDTO> getItemById(@PathVariable Integer id) {
         return ResponseEntity.ok(itemService.getItemById(id));
     }
-    @GetMapping
-    public ResponseEntity<ItemGetDTO> getItemByName(@RequestParam String name) {
+    @GetMapping(params = "name")
+    public ResponseEntity<ItemGetDTO> getItemByName(String name) {
         return ResponseEntity.ok(itemService.getItemByName(name));
     }
     @PostMapping
-    public ResponseEntity<ItemGetDTO> create(@RequestBody ItemCreateDTO itemCreateDTO) {
+    public ResponseEntity<ItemGetDTO> create(@RequestBody @Valid ItemCreateDTO itemCreateDTO) {
         return ResponseEntity.status(HttpStatus.CREATED).body(itemService.create(itemCreateDTO));
     }
     @PatchMapping("/{id}")
-    public ResponseEntity<ItemGetDTO> update(@RequestBody ItemUpdateDTO itemUpdateDTO, @PathVariable Integer id) {
+    public ResponseEntity<ItemGetDTO> update(@RequestBody @Valid ItemUpdateDTO itemUpdateDTO, @PathVariable Integer id) {
         return ResponseEntity.ok(itemService.update(itemUpdateDTO, id));
     }
     @DeleteMapping("/{id}")

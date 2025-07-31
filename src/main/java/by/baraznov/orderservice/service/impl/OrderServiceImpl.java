@@ -107,7 +107,7 @@ public class OrderServiceImpl implements OrderService {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new OrderNotFound("Order with id " + id + " doesn't exist"));
 
-        orderUpdateDTOMapper.merge(order, orderUpdateDTO);
+        orderUpdateDTOMapper.updateOrder(order, orderUpdateDTO, itemRepository);
         orderRepository.save(order);
         return mergeOrderWithUser(orderGetDTOMapper.toDto(order),
                 userClient.getUserById(authContext.getCurrentUserId()));
@@ -132,5 +132,6 @@ public class OrderServiceImpl implements OrderService {
                 orderGetDTO.creationDate(),
                 orderGetDTO.orderItems(),
                 userGetDTO);
+
     }
 }

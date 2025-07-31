@@ -9,7 +9,7 @@ import java.util.List;
 
 public record OrderUpdateDTO(
         @EnumValidator(enumClass = OrderStatus.class)
-        OrderStatus status,
+        String status,
         List<@Valid OrderItemUpdateDTO>orderItems
 ) {
 }

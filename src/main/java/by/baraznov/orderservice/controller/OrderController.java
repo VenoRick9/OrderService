@@ -6,6 +6,7 @@ import by.baraznov.orderservice.dto.order.OrderGetDTO;
 import by.baraznov.orderservice.dto.order.OrderUpdateDTO;
 import by.baraznov.orderservice.model.OrderStatus;
 import by.baraznov.orderservice.service.OrderService;
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -40,23 +41,23 @@ public class OrderController {
         return ResponseEntity.ok(orderService.getOrderById(id));
     }
 
-    @GetMapping
-    public ResponseEntity<List<OrderGetDTO>> getAllOrdersByIds(@RequestParam List<Integer> ids) {
+    @GetMapping(params = "ids")
+    public ResponseEntity<List<OrderGetDTO>> getAllOrdersByIds(@RequestParam("ids") List<Integer> ids) {
         return ResponseEntity.ok(orderService.getOrdersByIds(ids));
     }
 
-    @GetMapping
+    @GetMapping(params = "status")
     public ResponseEntity<PageResponse<OrderGetDTO>> getAllOrdersByStatus(@RequestParam OrderStatus status,
                 @PageableDefault(page = 0, size = 10, sort = {"id"}) Pageable pageable) {
         return ResponseEntity.ok(PageResponse.toPageResponse(orderService.
                 getOrderByStatus(pageable, status.toString())));
     }
     @PostMapping
-    public ResponseEntity<OrderGetDTO> create(@RequestBody OrderCreateDTO orderCreateDTO) {
+    public ResponseEntity<OrderGetDTO> create(@RequestBody @Valid OrderCreateDTO orderCreateDTO) {
         return ResponseEntity.status(HttpStatus.CREATED).body(orderService.create(orderCreateDTO));
     }
     @PatchMapping("/{id}")
-    public ResponseEntity<OrderGetDTO> update(@RequestBody OrderUpdateDTO orderUpdateDTO, @PathVariable Integer id) {
+    public ResponseEntity<OrderGetDTO> update(@RequestBody @Valid OrderUpdateDTO orderUpdateDTO, @PathVariable Integer id) {
         return ResponseEntity.ok(orderService.update(orderUpdateDTO, id));
     }
     @DeleteMapping("/{id}")

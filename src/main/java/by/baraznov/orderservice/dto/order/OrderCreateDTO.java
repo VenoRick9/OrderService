@@ -12,7 +12,7 @@ import java.util.List;
 public record OrderCreateDTO(
         @EnumValidator(enumClass = OrderStatus.class)
         @NotNull(message = "Order status is required")
-        OrderStatus status,
+        String status,
         @NotEmpty(message = "Order must contain at least one item")
         List<@Valid OrderItemCreateDTO> orderItems
 ) {

@@ -14,7 +14,7 @@ import java.lang.annotation.Target;
 public @interface EnumValidator {
 
     Class<? extends Enum<?>> enumClass();
-    String message() default "must be any of enum {enum}";
+    String message() default "Invalid enum's type";
     Class<?>[] groups() default {};
     Class<? extends Payload>[] payload() default {};
 }
