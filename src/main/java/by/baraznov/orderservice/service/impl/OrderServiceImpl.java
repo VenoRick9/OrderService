@@ -65,15 +65,15 @@ public class OrderServiceImpl implements OrderService {
         if (id == null) {
             throw new IllegalArgumentException("Id cannot be null");
         }
-        OrderGetDTO orderGetDTO = orderGetDTOMapper.toDto(orderRepository.findById(id)
-                .orElseThrow(() -> new OrderNotFound("Order with id " + id + " doesn't exist")));
-        return mergeOrderWithUser(orderGetDTO, userClient.getUserById(authContext.getCurrentUserId()));
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new OrderNotFound("Order with id " + id + " doesn't exist"));
+        return mergeOrderWithUser(orderGetDTOMapper.toDto(order), userClient.getUserById(order.getUserId()));
     }
 
     @Override
     public Page<OrderGetDTO> getAllOrders(Pageable pageable) {
         return orderRepository.findAll(pageable).map(s -> mergeOrderWithUser(orderGetDTOMapper.toDto(s),
-                userClient.getUserById(authContext.getCurrentUserId())));
+                userClient.getUserById(s.getUserId())));
     }
 
     @Override
@@ -87,7 +87,7 @@ public class OrderServiceImpl implements OrderService {
         return orderRepository.findAllById(ids).stream().
                 map(s ->
                         mergeOrderWithUser(orderGetDTOMapper.toDto(s),
-                                userClient.getUserById(authContext.getCurrentUserId()))).
+                                userClient.getUserById(s.getUserId()))).
                 collect(Collectors.toList());
     }
 
@@ -95,7 +95,7 @@ public class OrderServiceImpl implements OrderService {
     public Page<OrderGetDTO> getOrderByStatus(Pageable pageable, String status) {
         return orderRepository.findByStatus(OrderStatus.valueOf(status), pageable).
                 map(s -> mergeOrderWithUser(orderGetDTOMapper.toDto(s),
-                        userClient.getUserById(authContext.getCurrentUserId())));
+                        userClient.getUserById(s.getUserId())));
     }
 
     @Override
@@ -110,7 +110,7 @@ public class OrderServiceImpl implements OrderService {
         orderUpdateDTOMapper.updateOrder(order, orderUpdateDTO, itemRepository);
         orderRepository.save(order);
         return mergeOrderWithUser(orderGetDTOMapper.toDto(order),
-                userClient.getUserById(authContext.getCurrentUserId()));
+                userClient.getUserById(order.getUserId()));
     }
 
     @Override
