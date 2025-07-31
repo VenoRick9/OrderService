@@ -1,6 +1,9 @@
 package by.baraznov.orderservice.util;
 
 import by.baraznov.orderservice.model.OrderStatus;
+import by.baraznov.orderservice.util.feign.FeignClientBadRequestException;
+import by.baraznov.orderservice.util.feign.FeignClientNotFoundException;
+import by.baraznov.orderservice.util.feign.FeignException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -34,7 +37,20 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException ex) {
         return buildErrorResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
+    @ExceptionHandler(FeignClientNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleFeignClientNotFoundException(FeignClientNotFoundException ex) {
+        return buildErrorResponse(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
 
+    @ExceptionHandler(FeignClientBadRequestException.class)
+    public ResponseEntity<ErrorResponse> handleFeignClientBadRequestException(FeignClientBadRequestException ex) {
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(FeignException.class)
+    public ResponseEntity<ErrorResponse> handleFeignException(FeignException ex) {
+        return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage());
+    }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException ex) {

@@ -26,4 +26,5 @@ public class FeignClientConfig {
         }
         return null;
     }
+
 }
