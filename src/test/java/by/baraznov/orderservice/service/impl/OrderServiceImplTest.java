@@ -17,7 +17,8 @@ import by.baraznov.orderservice.model.OrderItem;
 import by.baraznov.orderservice.model.OrderStatus;
 import by.baraznov.orderservice.repository.ItemRepository;
 import by.baraznov.orderservice.repository.OrderRepository;
-import by.baraznov.orderservice.util.AuthContext;
+import by.baraznov.orderservice.util.JwtUtils;
+import io.jsonwebtoken.Claims;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -37,6 +38,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -56,7 +58,7 @@ class OrderServiceImplTest {
     @Mock
     private UserClient userClient;
     @Mock
-    private AuthContext authContext;
+    private JwtUtils jwtUtils;
     @InjectMocks
     private OrderServiceImpl orderService;
 
@@ -137,19 +139,22 @@ class OrderServiceImplTest {
                 "john@example.com", List.of());
 
         OrderGetDTO orderGetDTO = new OrderGetDTO(1, OrderStatus.NEW, LocalDateTime.now(), List.of(), userDTO);
+        String authentication = "Bearer fake.jwt.token";
+        String token = authentication.substring(7);
+        Claims claims = mock(Claims.class);
+        when(claims.getSubject()).thenReturn(String.valueOf(userId));
 
-        when(authContext.getCurrentUserId()).thenReturn(userId);
+        when(jwtUtils.getAccessClaims(token)).thenReturn(claims);
         when(orderCreateDTOMapper.toEntity(createDTO)).thenReturn(order);
         when(itemRepository.findById(1)).thenReturn(Optional.of(item));
         when(orderGetDTOMapper.toDto(order)).thenReturn(orderGetDTO);
         when(userClient.getUserById(userId)).thenReturn(userDTO);
 
-        OrderGetDTO result = orderService.create(createDTO);
+        OrderGetDTO result = orderService.create(createDTO, authentication);
 
         assertNotNull(result);
         verify(orderRepository).save(order);
         verify(userClient).getUserById(userId);
-        verify(authContext).getCurrentUserId();
         verify(orderCreateDTOMapper).toEntity(createDTO);
         verify(orderGetDTOMapper).toDto(order);
     }

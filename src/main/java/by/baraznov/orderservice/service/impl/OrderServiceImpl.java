@@ -14,9 +14,10 @@ import by.baraznov.orderservice.model.OrderStatus;
 import by.baraznov.orderservice.repository.ItemRepository;
 import by.baraznov.orderservice.repository.OrderRepository;
 import by.baraznov.orderservice.service.OrderService;
-import by.baraznov.orderservice.util.AuthContext;
 import by.baraznov.orderservice.util.ItemNotFound;
+import by.baraznov.orderservice.util.JwtUtils;
 import by.baraznov.orderservice.util.OrderNotFound;
+import io.jsonwebtoken.Claims;
 import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -37,13 +38,16 @@ public class OrderServiceImpl implements OrderService {
     private final OrderUpdateDTOMapper orderUpdateDTOMapper;
     private final OrderGetDTOMapper orderGetDTOMapper;
     private final UserClient userClient;
-    private final AuthContext authContext;
+    private final JwtUtils jwtUtils;
 
     @Override
     @Transactional
-    public OrderGetDTO create(OrderCreateDTO orderCreateDTO) {
+    public OrderGetDTO create(OrderCreateDTO orderCreateDTO, String authentication) {
+        String token = authentication.startsWith("Bearer ") ?
+                authentication.substring(7) : authentication;
+        Claims claims = jwtUtils.getAccessClaims(token);
+        Integer userId = Integer.valueOf(claims.getSubject());
         Order order = orderCreateDTOMapper.toEntity(orderCreateDTO);
-        Integer userId = authContext.getCurrentUserId();
         order.setUserId(userId);
         for (int i = 0; i < orderCreateDTO.orderItems().size(); i++) {
             int itemId = i;
