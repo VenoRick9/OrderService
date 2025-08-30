@@ -1,5 +1,6 @@
 package by.baraznov.orderservice.service;
 
+import by.baraznov.orderservice.dto.PaymentKafkaDTO;
 import by.baraznov.orderservice.dto.order.OrderCreateDTO;
 import by.baraznov.orderservice.dto.order.OrderGetDTO;
 import by.baraznov.orderservice.dto.order.OrderUpdateDTO;
@@ -21,4 +22,6 @@ public interface OrderService {
     OrderGetDTO update(OrderUpdateDTO orderUpdateDTO, Integer id);
 
     void delete(Integer id);
+
+    void changeStatus(PaymentKafkaDTO message);
 }

@@ -1,10 +1,13 @@
 package by.baraznov.orderservice.service.impl;
 
 import by.baraznov.orderservice.client.UserClient;
+import by.baraznov.orderservice.dto.OrderKafkaDTO;
+import by.baraznov.orderservice.dto.PaymentKafkaDTO;
 import by.baraznov.orderservice.dto.UserGetDTO;
 import by.baraznov.orderservice.dto.order.OrderCreateDTO;
 import by.baraznov.orderservice.dto.order.OrderGetDTO;
 import by.baraznov.orderservice.dto.order.OrderUpdateDTO;
+import by.baraznov.orderservice.kafka.KafkaProducer;
 import by.baraznov.orderservice.mapper.order.OrderCreateDTOMapper;
 import by.baraznov.orderservice.mapper.order.OrderGetDTOMapper;
 import by.baraznov.orderservice.mapper.order.OrderUpdateDTOMapper;
@@ -24,6 +27,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -39,14 +43,12 @@ public class OrderServiceImpl implements OrderService {
     private final OrderGetDTOMapper orderGetDTOMapper;
     private final UserClient userClient;
     private final JwtUtils jwtUtils;
+    private final KafkaProducer kafkaProducer;
 
     @Override
     @Transactional
     public OrderGetDTO create(OrderCreateDTO orderCreateDTO, String authentication) {
-        String token = authentication.startsWith("Bearer ") ?
-                authentication.substring(7) : authentication;
-        Claims claims = jwtUtils.getAccessClaims(token);
-        Integer userId = Integer.valueOf(claims.getSubject());
+        Integer userId = getUserIdFromToken(authentication);
         Order order = orderCreateDTOMapper.toEntity(orderCreateDTO);
         order.setUserId(userId);
         for (int i = 0; i < orderCreateDTO.orderItems().size(); i++) {
@@ -60,9 +62,14 @@ public class OrderServiceImpl implements OrderService {
                     .build();
             order.addOrderItem(orderItem);
         }
+        order.setStatus(OrderStatus.NEW);
         orderRepository.save(order);
+        kafkaProducer.sendCreateOrder(new OrderKafkaDTO(order.getUserId(),
+                order.getId(), getTotalSum(order)));
         return mergeOrderWithUser(orderGetDTOMapper.toDto(order), userClient.getUserById(userId));
     }
+
+
 
     @Override
     public OrderGetDTO getOrderById(Integer id) {
@@ -130,6 +137,15 @@ public class OrderServiceImpl implements OrderService {
 
     }
 
+    @Override
+    @Transactional
+    public void changeStatus(PaymentKafkaDTO message) {
+        Order order = orderRepository.findById(message.orderId())
+                .orElseThrow(() -> new OrderNotFound("Order with id " + message.orderId() + " doesn't exist"));
+        order.setStatus(OrderStatus.valueOf(message.status()));
+        orderRepository.save(order);
+    }
+
     private OrderGetDTO mergeOrderWithUser(OrderGetDTO orderGetDTO, UserGetDTO userGetDTO) {
         return new OrderGetDTO(orderGetDTO.id(),
                 orderGetDTO.status(),
@@ -138,4 +154,20 @@ public class OrderServiceImpl implements OrderService {
                 userGetDTO);
 
     }
+
+
+    private Integer getUserIdFromToken(String authentication) {
+        String token = authentication.startsWith("Bearer ") ?
+                authentication.substring(7) : authentication;
+        Claims claims = jwtUtils.getAccessClaims(token);
+        return Integer.valueOf(claims.getSubject());
+    }
+
+    private BigDecimal getTotalSum(Order order) {
+        return order.getOrderItems().stream()
+                .map(orderItem -> orderItem.getItem().getPrice()
+                        .multiply(BigDecimal.valueOf(orderItem.getQuantity())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
 }
