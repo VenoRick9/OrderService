@@ -74,7 +74,7 @@ class OrderControllerTest {
                 .userId(1)
                 .build();
         order2 = Order.builder()
-                .status(OrderStatus.COMPLETED)
+                .status(OrderStatus.SUCCESS)
                 .creationDate(LocalDateTime.now())
                 .userId(2)
                 .build();
@@ -126,7 +126,7 @@ class OrderControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content", hasSize(2)))
                 .andExpect(jsonPath("$.content[0].status").value("NEW"))
-                .andExpect(jsonPath("$.content[1].status").value("COMPLETED"))
+                .andExpect(jsonPath("$.content[1].status").value("SUCCESS"))
                 .andExpect(jsonPath("$.content[0].user.name").value("Lev"))
                 .andExpect(jsonPath("$.content[1].user.surname").value("Frank"));
         verify(getRequestedFor(urlEqualTo("/users/1")));
@@ -154,7 +154,7 @@ class OrderControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(2)))
                 .andExpect(jsonPath("$[0].status").value("NEW"))
-                .andExpect(jsonPath("$[1].status").value("COMPLETED"))
+                .andExpect(jsonPath("$[1].status").value("SUCCESS"))
                 .andExpect(jsonPath("$[0].user.name").value("Lev"))
                 .andExpect(jsonPath("$[1].user.surname").value("Frank"));
         verify(getRequestedFor(urlEqualTo("/users/1")));
@@ -180,7 +180,6 @@ class OrderControllerTest {
     public void test_createOrder() throws Exception {
         String json = """
                     {
-                        "status":"NEW",
                         "orderItems":[
                             {
                                 "itemId":"1",
@@ -204,7 +203,13 @@ class OrderControllerTest {
     public void test_updateOrder() throws Exception {
         String json = """
                     {
-                     "status":"PAID"
+                     "orderItems":[
+                          {
+                              "id":"1",
+                              "itemId":"1",
+                              "quantity":"6"
+                          }
+                      ]
                     }
                 """;
 
@@ -213,8 +218,7 @@ class OrderControllerTest {
                         .header("Authorization", "Bearer " + token)
                         .content(json))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.status").value("PAID"));
+                .andExpect(jsonPath("$.id").value(1));
         verify(getRequestedFor(urlEqualTo("/users/1")));
     }
 

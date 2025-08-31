@@ -2,12 +2,14 @@ package by.baraznov.orderservice.service.impl;
 
 import by.baraznov.orderservice.client.UserClient;
 import by.baraznov.orderservice.dto.CardGetDTO;
+import by.baraznov.orderservice.dto.OrderKafkaDTO;
 import by.baraznov.orderservice.dto.UserGetDTO;
 import by.baraznov.orderservice.dto.order.OrderCreateDTO;
 import by.baraznov.orderservice.dto.order.OrderGetDTO;
 import by.baraznov.orderservice.dto.order.OrderUpdateDTO;
 import by.baraznov.orderservice.dto.orderitem.OrderItemCreateDTO;
 import by.baraznov.orderservice.dto.orderitem.OrderItemGetDTO;
+import by.baraznov.orderservice.kafka.KafkaProducer;
 import by.baraznov.orderservice.mapper.order.OrderCreateDTOMapper;
 import by.baraznov.orderservice.mapper.order.OrderGetDTOMapper;
 import by.baraznov.orderservice.mapper.order.OrderUpdateDTOMapper;
@@ -59,6 +61,8 @@ class OrderServiceImplTest {
     private UserClient userClient;
     @Mock
     private JwtUtils jwtUtils;
+    @Mock
+    private KafkaProducer kafkaProducer;
     @InjectMocks
     private OrderServiceImpl orderService;
 
@@ -126,7 +130,7 @@ class OrderServiceImplTest {
     void test_createOrder() {
         Integer userId = 1;
         OrderItemCreateDTO itemDTO = new OrderItemCreateDTO(1, 2);
-        OrderCreateDTO createDTO = new OrderCreateDTO("NEW",List.of(itemDTO));
+        OrderCreateDTO createDTO = new OrderCreateDTO(List.of(itemDTO));
 
         Order order = new Order();
         order.setUserId(userId);
@@ -142,6 +146,7 @@ class OrderServiceImplTest {
         String authentication = "Bearer fake.jwt.token";
         String token = authentication.substring(7);
         Claims claims = mock(Claims.class);
+        OrderKafkaDTO kafkaDTO = new OrderKafkaDTO(1,1,new BigDecimal("1199.99"));
         when(claims.getSubject()).thenReturn(String.valueOf(userId));
 
         when(jwtUtils.getAccessClaims(token)).thenReturn(claims);
@@ -149,6 +154,7 @@ class OrderServiceImplTest {
         when(itemRepository.findById(1)).thenReturn(Optional.of(item));
         when(orderGetDTOMapper.toDto(order)).thenReturn(orderGetDTO);
         when(userClient.getUserById(userId)).thenReturn(userDTO);
+
 
         OrderGetDTO result = orderService.create(createDTO, authentication);
 
@@ -203,10 +209,10 @@ class OrderServiceImplTest {
     void test_update() {
         Integer id = 1;
         Order order = new Order(id, 1, OrderStatus.NEW, LocalDateTime.now(), List.of());
-        OrderUpdateDTO updateDTO = new OrderUpdateDTO("COMPLETED", List.of());
+        OrderUpdateDTO updateDTO = new OrderUpdateDTO( List.of());
         UserGetDTO user = new UserGetDTO(1, "Name", "Surname",
                 LocalDate.of(1990,1,1), "email", List.of());
-        OrderGetDTO dto = new OrderGetDTO(id, OrderStatus.COMPLETED, LocalDateTime.now(), List.of(), user);
+        OrderGetDTO dto = new OrderGetDTO(id, OrderStatus.SUCCESS, LocalDateTime.now(), List.of(), user);
 
 
         when(orderRepository.findById(id)).thenReturn(Optional.of(order));
