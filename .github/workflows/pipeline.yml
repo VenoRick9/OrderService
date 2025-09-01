@@ -15,7 +15,7 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
       - name: Build and test
-        run: ./gradlew clean build --no-daemon
+        run: ./gradlew clean build --no-daemon --info --stacktrace
   docker-image:
     runs-on: ubuntu-22.04
     steps:

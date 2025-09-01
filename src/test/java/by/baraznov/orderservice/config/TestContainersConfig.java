@@ -12,7 +12,7 @@ import org.testcontainers.utility.DockerImageName;
 public class TestContainersConfig {
 
     public static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:13")
-            .withDatabaseName("user-service")
+            .withDatabaseName("user_service")
             .withUsername("postgres")
             .withPassword("Postgres_9");
 
