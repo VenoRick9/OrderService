@@ -1,6 +1,9 @@
 package by.baraznov.orderservice.controller;
 
 import by.baraznov.orderservice.config.TestContainersConfig;
+import by.baraznov.orderservice.config.TestKafkaConfig;
+import by.baraznov.orderservice.dto.OrderKafkaDTO;
+import by.baraznov.orderservice.kafka.KafkaProducer;
 import by.baraznov.orderservice.model.Item;
 import by.baraznov.orderservice.model.Order;
 import by.baraznov.orderservice.model.OrderStatus;
@@ -32,6 +35,8 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -45,7 +50,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @AutoConfigureWireMock(port = 9120)
 @TestPropertySource(properties = "external.server.baseUrl=http://localhost:9120")
-@Import(TestContainersConfig.class)
+@Import({TestContainersConfig.class, TestKafkaConfig.class})
 class OrderControllerTest {
     @Autowired
     private MockMvc mockMvc;
@@ -57,7 +62,8 @@ class OrderControllerTest {
     private OrderRepository orderRepository;
     @Autowired
     private JwtUtilTest testJwtUtil;
-
+    @Autowired
+    private KafkaProducer kafkaProducer;
 
     private String token;
 
@@ -114,6 +120,7 @@ class OrderControllerTest {
                                       "email": "frank@example.com"
                                     }
                                 """)));
+        doNothing().when(kafkaProducer).sendCreateOrder(any(OrderKafkaDTO.class));
     }
 
     @Test
@@ -197,6 +204,7 @@ class OrderControllerTest {
                 .andExpect(jsonPath("$.status").value("NEW"))
                 .andExpect(jsonPath("$.id").value("3"));
         verify(getRequestedFor(urlEqualTo("/users/1")));
+        //Mockito.verify(kafkaProducer, times(1)).sendCreateOrder(any(OrderKafkaDTO.class));
     }
 
     @Test
