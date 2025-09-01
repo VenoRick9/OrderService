@@ -14,6 +14,8 @@ import com.github.tomakehurst.wiremock.client.WireMock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
+import org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.contract.wiremock.AutoConfigureWireMock;
@@ -51,6 +53,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureWireMock(port = 9120)
 @TestPropertySource(properties = "external.server.baseUrl=http://localhost:9120")
 @Import({TestContainersConfig.class, TestKafkaConfig.class})
+@ImportAutoConfiguration(exclude = {KafkaAutoConfiguration.class})
 class OrderControllerTest {
     @Autowired
     private MockMvc mockMvc;
