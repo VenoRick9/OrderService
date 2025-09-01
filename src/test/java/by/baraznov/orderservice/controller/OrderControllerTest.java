@@ -204,7 +204,6 @@ class OrderControllerTest {
                 .andExpect(jsonPath("$.status").value("NEW"))
                 .andExpect(jsonPath("$.id").value("3"));
         verify(getRequestedFor(urlEqualTo("/users/1")));
-        //Mockito.verify(kafkaProducer, times(1)).sendCreateOrder(any(OrderKafkaDTO.class));
     }
 
     @Test

@@ -12,7 +12,7 @@ import org.testcontainers.utility.DockerImageName;
 public class TestContainersConfig {
 
     public static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:13")
-            .withDatabaseName("user_service")
+            .withDatabaseName("user-service")
             .withUsername("postgres")
             .withPassword("Postgres_9");
 
@@ -21,16 +21,13 @@ public class TestContainersConfig {
     );
 
     static {
-        // Запускаем оба контейнера
         postgres.start();
         kafka.start();
 
-        // Устанавливаем свойства для PostgreSQL
         System.setProperty("spring.datasource.url", postgres.getJdbcUrl());
         System.setProperty("spring.datasource.username", postgres.getUsername());
         System.setProperty("spring.datasource.password", postgres.getPassword());
 
-        // Устанавливаем свойства для Kafka
         System.setProperty("spring.kafka.bootstrap-servers", kafka.getBootstrapServers());
     }
 
@@ -44,7 +41,6 @@ public class TestContainersConfig {
         return postgres;
     }
 
-    // Альтернативный способ через DynamicPropertyRegistry
     public static void overrideProperties(DynamicPropertyRegistry registry) {
         registry.add("spring.datasource.url", postgres::getJdbcUrl);
         registry.add("spring.datasource.username", postgres::getUsername);
