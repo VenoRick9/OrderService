@@ -1,6 +1,9 @@
 package by.baraznov.orderservice.controller;
 
 import by.baraznov.orderservice.config.TestContainersConfig;
+import by.baraznov.orderservice.config.TestKafkaConfig;
+import by.baraznov.orderservice.dto.OrderKafkaDTO;
+import by.baraznov.orderservice.kafka.KafkaProducer;
 import by.baraznov.orderservice.model.Item;
 import by.baraznov.orderservice.model.Order;
 import by.baraznov.orderservice.model.OrderStatus;
@@ -17,6 +20,7 @@ import org.springframework.cloud.contract.wiremock.AutoConfigureWireMock;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -32,6 +36,8 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -42,10 +48,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @Testcontainers
+@ActiveProfiles("test")
 @AutoConfigureMockMvc
 @AutoConfigureWireMock(port = 9120)
 @TestPropertySource(properties = "external.server.baseUrl=http://localhost:9120")
-@Import(TestContainersConfig.class)
+@Import({TestContainersConfig.class, TestKafkaConfig.class})
 class OrderControllerTest {
     @Autowired
     private MockMvc mockMvc;
@@ -57,7 +64,8 @@ class OrderControllerTest {
     private OrderRepository orderRepository;
     @Autowired
     private JwtUtilTest testJwtUtil;
-
+    @Autowired
+    private KafkaProducer kafkaProducer;
 
     private String token;
 
@@ -74,7 +82,7 @@ class OrderControllerTest {
                 .userId(1)
                 .build();
         order2 = Order.builder()
-                .status(OrderStatus.COMPLETED)
+                .status(OrderStatus.SUCCESS)
                 .creationDate(LocalDateTime.now())
                 .userId(2)
                 .build();
@@ -114,6 +122,7 @@ class OrderControllerTest {
                                       "email": "frank@example.com"
                                     }
                                 """)));
+        doNothing().when(kafkaProducer).sendCreateOrder(any(OrderKafkaDTO.class));
     }
 
     @Test
@@ -126,7 +135,7 @@ class OrderControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content", hasSize(2)))
                 .andExpect(jsonPath("$.content[0].status").value("NEW"))
-                .andExpect(jsonPath("$.content[1].status").value("COMPLETED"))
+                .andExpect(jsonPath("$.content[1].status").value("SUCCESS"))
                 .andExpect(jsonPath("$.content[0].user.name").value("Lev"))
                 .andExpect(jsonPath("$.content[1].user.surname").value("Frank"));
         verify(getRequestedFor(urlEqualTo("/users/1")));
@@ -154,7 +163,7 @@ class OrderControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(2)))
                 .andExpect(jsonPath("$[0].status").value("NEW"))
-                .andExpect(jsonPath("$[1].status").value("COMPLETED"))
+                .andExpect(jsonPath("$[1].status").value("SUCCESS"))
                 .andExpect(jsonPath("$[0].user.name").value("Lev"))
                 .andExpect(jsonPath("$[1].user.surname").value("Frank"));
         verify(getRequestedFor(urlEqualTo("/users/1")));
@@ -180,7 +189,6 @@ class OrderControllerTest {
     public void test_createOrder() throws Exception {
         String json = """
                     {
-                        "status":"NEW",
                         "orderItems":[
                             {
                                 "itemId":"1",
@@ -204,7 +212,13 @@ class OrderControllerTest {
     public void test_updateOrder() throws Exception {
         String json = """
                     {
-                     "status":"PAID"
+                     "orderItems":[
+                          {
+                              "id":"1",
+                              "itemId":"1",
+                              "quantity":"6"
+                          }
+                      ]
                     }
                 """;
 
@@ -213,8 +227,7 @@ class OrderControllerTest {
                         .header("Authorization", "Bearer " + token)
                         .content(json))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.status").value("PAID"));
+                .andExpect(jsonPath("$.id").value(1));
         verify(getRequestedFor(urlEqualTo("/users/1")));
     }
 

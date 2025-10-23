@@ -1,5 +1,6 @@
 package by.baraznov.orderservice.service;
 
+import by.baraznov.orderservice.dto.PaymentKafkaDTO;
 import by.baraznov.orderservice.dto.order.OrderCreateDTO;
 import by.baraznov.orderservice.dto.order.OrderGetDTO;
 import by.baraznov.orderservice.dto.order.OrderUpdateDTO;
@@ -9,7 +10,7 @@ import org.springframework.data.domain.Pageable;
 import java.util.List;
 
 public interface OrderService {
-    OrderGetDTO create(OrderCreateDTO orderCreateDTO);
+    OrderGetDTO create(OrderCreateDTO orderCreateDTO, String authentication);
 
     OrderGetDTO getOrderById(Integer id);
 
@@ -21,4 +22,6 @@ public interface OrderService {
     OrderGetDTO update(OrderUpdateDTO orderUpdateDTO, Integer id);
 
     void delete(Integer id);
+
+    void changeStatus(PaymentKafkaDTO message);
 }
