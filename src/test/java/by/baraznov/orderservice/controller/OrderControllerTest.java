@@ -10,16 +10,20 @@ import by.baraznov.orderservice.model.OrderStatus;
 import by.baraznov.orderservice.repository.ItemRepository;
 import by.baraznov.orderservice.repository.OrderRepository;
 import by.baraznov.orderservice.util.JwtUtilTest;
+import by.baraznov.orderservice.util.JwtUtils;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.cloud.contract.wiremock.AutoConfigureWireMock;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -28,6 +32,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
@@ -66,6 +71,8 @@ class OrderControllerTest {
     private JwtUtilTest testJwtUtil;
     @Autowired
     private KafkaProducer kafkaProducer;
+    @MockBean
+    private JwtUtils jwtUtils;
 
     private String token;
 
@@ -76,56 +83,68 @@ class OrderControllerTest {
     void setUp() {
         jdbcTemplate.execute("TRUNCATE TABLE items RESTART IDENTITY CASCADE");
         jdbcTemplate.execute("TRUNCATE TABLE orders RESTART IDENTITY CASCADE");
+
+        UUID user1Id = UUID.randomUUID();
+        UUID user2Id = UUID.randomUUID();
+
         order1 = Order.builder()
                 .status(OrderStatus.NEW)
                 .creationDate(LocalDateTime.now())
-                .userId(1)
+                .userId(user1Id)
                 .build();
         order2 = Order.builder()
                 .status(OrderStatus.SUCCESS)
                 .creationDate(LocalDateTime.now())
-                .userId(2)
+                .userId(user2Id)
                 .build();
 
         orderRepository.saveAll(List.of(order1, order2));
+
         item1 = Item.builder()
                 .name("Iphone 14")
                 .price(new BigDecimal("1199.99"))
                 .build();
         itemRepository.save(item1);
+
         token = testJwtUtil.generateToken(order1);
+        Mockito.when(jwtUtils.getAccessClaims(Mockito.anyString()))
+                .thenReturn(user1Id);
     }
 
     @BeforeEach
     void setupStub() {
-        stubFor(WireMock.get(urlEqualTo("/users/1"))
+        stubFor(WireMock.get(urlEqualTo("/users/" + order1.getUserId()))
                 .willReturn(aResponse()
                         .withStatus(200)
                         .withHeader("Content-Type", "application/json")
                         .withBody("""
-                                    {
-                                      "id": 1,
-                                      "name": "Lev",
-                                      "surname": "Lamar",
-                                      "email": "lamar@example.com"
-                                    }
-                                """)));
-        stubFor(WireMock.get(urlEqualTo("/users/2"))
+                            {
+                              "id": "%s",
+                              "name": "Lev",
+                              "surname": "Lamar",
+                              "email": "lamar@example.com"
+                            }
+                            """.formatted(order1.getUserId()))));
+
+        stubFor(WireMock.get(urlEqualTo("/users/" + order2.getUserId()))
                 .willReturn(aResponse()
                         .withStatus(200)
                         .withHeader("Content-Type", "application/json")
                         .withBody("""
-                                    {
-                                      "id": 2,
-                                      "name": "Tiger",
-                                      "surname": "Frank",
-                                      "email": "frank@example.com"
-                                    }
-                                """)));
+                            {
+                              "id": "%s",
+                              "name": "Tiger",
+                              "surname": "Frank",
+                              "email": "frank@example.com"
+                            }
+                            """.formatted(order2.getUserId()))));
+
         doNothing().when(kafkaProducer).sendCreateOrder(any(OrderKafkaDTO.class));
     }
 
+
     @Test
+    @WithMockUser(username = "admin", roles = {"ADMIN"})
     void test_getAllOrders() throws Exception {
         mockMvc.perform(get("/orders")
                         .param("page", "0")
@@ -138,11 +157,12 @@ class OrderControllerTest {
                 .andExpect(jsonPath("$.content[1].status").value("SUCCESS"))
                 .andExpect(jsonPath("$.content[0].user.name").value("Lev"))
                 .andExpect(jsonPath("$.content[1].user.surname").value("Frank"));
-        verify(getRequestedFor(urlEqualTo("/users/1")));
-        verify(getRequestedFor(urlEqualTo("/users/2")));
+        verify(getRequestedFor(urlEqualTo("/users/" + order1.getUserId())));
+        verify(getRequestedFor(urlEqualTo("/users/" + order2.getUserId())));
     }
 
     @Test
+    @WithMockUser(username = "admin", roles = {"ADMIN"})
     void test_getOrderById() throws Exception {
         mockMvc.perform(get("/orders/{id}", order1.getId())
                         .accept(MediaType.APPLICATION_JSON)
@@ -151,10 +171,12 @@ class OrderControllerTest {
                 .andExpect(jsonPath("$.status").value("NEW"))
                 .andExpect(jsonPath("$.user.name").value("Lev"))
                 .andExpect(jsonPath("$.user.surname").value("Lamar"));
-        verify(getRequestedFor(urlEqualTo("/users/1")));
+        verify(getRequestedFor(urlEqualTo("/users/" + order1.getUserId())));
+
     }
 
     @Test
+    @WithMockUser(username = "admin", roles = {"ADMIN"})
     void test_getOrderByIds() throws Exception {
         mockMvc.perform(get("/orders")
                         .param("ids", String.valueOf(order1.getId()), String.valueOf(order2.getId()))
@@ -166,11 +188,12 @@ class OrderControllerTest {
                 .andExpect(jsonPath("$[1].status").value("SUCCESS"))
                 .andExpect(jsonPath("$[0].user.name").value("Lev"))
                 .andExpect(jsonPath("$[1].user.surname").value("Frank"));
-        verify(getRequestedFor(urlEqualTo("/users/1")));
-        verify(getRequestedFor(urlEqualTo("/users/2")));
+        verify(getRequestedFor(urlEqualTo("/users/" + order1.getUserId())));
+        verify(getRequestedFor(urlEqualTo("/users/" + order2.getUserId())));
     }
 
     @Test
+    @WithMockUser(username = "admin", roles = {"ADMIN"})
     void test_getOrdersByStatus() throws Exception {
         mockMvc.perform(get("/orders")
                         .param("status", "NEW")
@@ -182,10 +205,11 @@ class OrderControllerTest {
                 .andExpect(jsonPath("$.content", hasSize(1)))
                 .andExpect(jsonPath("$.content[0].status").value("NEW"))
                 .andExpect(jsonPath("$.content[0].user.name").value("Lev"));
-        verify(getRequestedFor(urlEqualTo("/users/1")));
+        verify(getRequestedFor(urlEqualTo("/users/" + order1.getUserId())));
     }
 
     @Test
+    @WithMockUser(username = "admin", roles = {"ADMIN"})
     public void test_createOrder() throws Exception {
         String json = """
                     {
@@ -205,10 +229,11 @@ class OrderControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.status").value("NEW"))
                 .andExpect(jsonPath("$.id").value("3"));
-        verify(getRequestedFor(urlEqualTo("/users/1")));
+        verify(getRequestedFor(urlEqualTo("/users/" + order1.getUserId())));
     }
 
     @Test
+    @WithMockUser(username = "admin", roles = {"ADMIN"})
     public void test_updateOrder() throws Exception {
         String json = """
                     {
@@ -228,10 +253,11 @@ class OrderControllerTest {
                         .content(json))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1));
-        verify(getRequestedFor(urlEqualTo("/users/1")));
+        verify(getRequestedFor(urlEqualTo("/users/" + order1.getUserId())));
     }
 
     @Test
+    @WithMockUser(username = "admin", roles = {"ADMIN"})
     public void test_deleteOrder() throws Exception {
         mockMvc.perform(delete("/orders/{id}", order2.getId())
                         .header("Authorization", "Bearer " + token))

@@ -15,6 +15,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -23,6 +24,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -51,19 +53,24 @@ class ItemControllerTest {
     @Autowired
     private JwtUtilTest testJwtUtil;
 
+
     private String token;
 
     private Order order;
     private Item item1, item2;
+    private UUID userId;
 
     @BeforeEach
     void setUp() {
         jdbcTemplate.execute("TRUNCATE TABLE items RESTART IDENTITY CASCADE");
         jdbcTemplate.execute("TRUNCATE TABLE orders RESTART IDENTITY CASCADE");
+
+        userId = UUID.randomUUID();
+
         order = Order.builder()
                 .status(OrderStatus.NEW)
                 .creationDate(LocalDateTime.now())
-                .userId(1)
+                .userId(userId)
                 .build();
         orderRepository.save(order);
         item1 = Item.builder()
@@ -79,6 +86,7 @@ class ItemControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "admin", roles = {"ADMIN"})
     void test_getAllItems() throws Exception {
         mockMvc.perform(get("/items")
                         .param("page", "0")
@@ -92,6 +100,7 @@ class ItemControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "admin", roles = {"ADMIN"})
     void test_getItemById() throws Exception {
         mockMvc.perform(get("/items/{id}", item1.getId())
                         .header("Authorization", "Bearer " + token))
@@ -101,6 +110,7 @@ class ItemControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "admin", roles = {"ADMIN"})
     void test_getItemByName() throws Exception {
         mockMvc.perform(get("/items")
                         .param("name", item1.getName())
@@ -111,6 +121,7 @@ class ItemControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "admin", roles = {"ADMIN"})
     void test_createItem() throws Exception {
         String json = """
                     {
@@ -129,6 +140,7 @@ class ItemControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "admin", roles = {"ADMIN"})
     void test_updateItem() throws Exception {
         String json = """
                     {
@@ -147,6 +159,7 @@ class ItemControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "admin", roles = {"ADMIN"})
     void test_updateItemName() throws Exception {
         String json = """
                     {
@@ -164,6 +177,7 @@ class ItemControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "admin", roles = {"ADMIN"})
     void test_deleteItem() throws Exception {
         mockMvc.perform(delete("/items/{id}", item2.getId())
                         .header("Authorization", "Bearer " + token))

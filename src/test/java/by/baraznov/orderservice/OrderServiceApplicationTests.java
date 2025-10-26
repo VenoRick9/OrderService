@@ -12,7 +12,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @TestPropertySource(properties = "external.server.baseUrl=http://localhost:9120")
 @Testcontainers
 class OrderServiceApplicationTests {
-
     @Test
     void contextLoads() {
     }
