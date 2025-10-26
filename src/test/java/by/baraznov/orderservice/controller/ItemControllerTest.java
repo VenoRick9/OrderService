@@ -7,11 +7,13 @@ import by.baraznov.orderservice.model.OrderStatus;
 import by.baraznov.orderservice.repository.ItemRepository;
 import by.baraznov.orderservice.repository.OrderRepository;
 import by.baraznov.orderservice.util.JwtUtilTest;
+import by.baraznov.orderservice.util.JwtUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -52,6 +54,8 @@ class ItemControllerTest {
     private OrderRepository orderRepository;
     @Autowired
     private JwtUtilTest testJwtUtil;
+    @MockBean
+    private JwtUtils jwtUtils;
 
 
     private String token;
