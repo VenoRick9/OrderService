@@ -20,7 +20,6 @@ import by.baraznov.orderservice.service.OrderService;
 import by.baraznov.orderservice.util.ItemNotFound;
 import by.baraznov.orderservice.util.JwtUtils;
 import by.baraznov.orderservice.util.OrderNotFound;
-import io.jsonwebtoken.Claims;
 import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -30,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -48,7 +48,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional
     public OrderGetDTO create(OrderCreateDTO orderCreateDTO, String authentication) {
-        Integer userId = getUserIdFromToken(authentication);
+        UUID userId = getUserIdFromToken(authentication);
         Order order = orderCreateDTOMapper.toEntity(orderCreateDTO);
         order.setUserId(userId);
         for (int i = 0; i < orderCreateDTO.orderItems().size(); i++) {
@@ -156,11 +156,10 @@ public class OrderServiceImpl implements OrderService {
     }
 
 
-    private Integer getUserIdFromToken(String authentication) {
+    private UUID getUserIdFromToken(String authentication) {
         String token = authentication.startsWith("Bearer ") ?
                 authentication.substring(7) : authentication;
-        Claims claims = jwtUtils.getAccessClaims(token);
-        return Integer.valueOf(claims.getSubject());
+        return jwtUtils.getAccessClaims(token);
     }
 
     private BigDecimal getTotalSum(Order order) {

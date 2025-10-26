@@ -20,6 +20,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Entity
 @Table(name = "orders")
@@ -33,7 +34,7 @@ public class Order {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
     @Column(name = "user_id")
-    private Integer userId;
+    private UUID userId;
     @Enumerated(EnumType.STRING)
     private OrderStatus status;
     @Column(name = "creation_date")
